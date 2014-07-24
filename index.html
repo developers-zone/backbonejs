@@ -1,62 +1,118 @@
-<!doctype html>
-<!-- The Time Machine GitHub pages theme was designed and developed by Jon Rohan, on Feb 7, 2012. -->
-<!-- Follow him for fun. http://twitter.com/jonrohan. Tail his code on http://github.com/jonrohan -->
+<!DOCTYPE html>
 <html>
-<head>
-  <meta charset="utf-8">
-  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <head>
+    <title>Getting properties with event handlers</title>
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no">
+    <meta charset="utf-8">
+    <style>
+      html, body, #map-canvas {
+        height: 100%;
+        margin: 0px;
+        padding: 0px
+      }
+    </style>
 
-  <link rel="stylesheet" href="stylesheets/stylesheet.css" media="screen"/>
-  <link rel="stylesheet" href="stylesheets/pygment_trac.css"/>
-  <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
-  <script type="text/javascript" src="javascripts/script.js"></script>
+    <script src="https://maps.googleapis.com/maps/api/js?v=3.exp"></script>
+    <script src="http://maps.googleapis.com/maps/api/js?key=AIzaSyDY0kkJiTPVd2U7aTOAwhc9ySH6oHxOIYM&sensor=false"></script>
+    <script>
+	var map;
+	var geocoder;
+	var defaultlatlng;
+	var defaultZoom;  
+	var cookiePosValue  = getCookie("LatLngNow");
+	var cookieZoomValue = getCookie("ZoomNow");
 
-  <title>Backbonejs</title>
-  <meta name="description" content="Can work easily with backbone for webapplications">
+	if(cookiePosValue != "" && cookieZoomValue!=""){
+		defaultlatlng = cookiePosValue;
+		defaultZoom   = cookieZoomValue;
+	}else{
+		defaultlatlng = "-25.363882, 131.044922";
+		defaultZoom   = 4; 
+	}
 
-  <meta name="viewport" content="width=device-width,initial-scale=1">
+	function initialize() {
+		var latlngStr = defaultlatlng.split(',', 2);
+		var lat = parseFloat(latlngStr[0]);
+		var lng = parseFloat(latlngStr[1]);
+		var myLatLng = new google.maps.LatLng(lat, lng); // 9.9627211,76.2911063
+		geocoder = new google.maps.Geocoder();
 
-</head>
+		codeLatLng(lat, lng, function(address){
+		    document.getElementById('map').value = 'My current Location is '+address;
+		});
 
-<body>
+		var mapOptions = {
+			zoom: parseInt(defaultZoom),
+			center: myLatLng,
+			mapTypeId:google.maps.MapTypeId.ROADMAP
+		};
+		map = new google.maps.Map(document.getElementById('map-canvas'), mapOptions);
+		var infowindow = new google.maps.InfoWindow({
+		    content: 'Change the zoom level',
+		    position: myLatLng
+		  });
+		infowindow.open(map);
+		google.maps.event.addListener(map, 'zoom_changed', function() {
+			var zoomLevel = map.getZoom();
+			var centerLevel = map.getCenter();
+			var centerLevelString = String(centerLevel).replace(/[)(]/g, ''); //remove (){}[]
+			
+			var latlngStr = centerLevelString.split(',', 2);
+			var lat = parseFloat(latlngStr[0]);
+			var lng = parseFloat(latlngStr[1]);
+			
+			setCookie("LatLngNow", centerLevelString, 200);
+			setCookie("ZoomNow", zoomLevel, 200);
 
-  <div class="wrapper">
-    <header>
-      <h1 class="title">Backbonejs</h1>
-    </header>
-    <div id="container">
-      <p class="tagline">Can work easily with backbone for webapplications</p>
-      <div id="main" role="main">
-        <div class="download-bar">
-        <div class="inner">
-          <a href="https://github.com/sujithsamv/backbonejs/tarball/master" class="download-button tar"><span>Download</span></a>
-          <a href="https://github.com/sujithsamv/backbonejs/zipball/master" class="download-button zip"><span>Download</span></a>
-          <a href="https://github.com/sujithsamv/backbonejs" class="code">View Backbonejs on GitHub</a>
-        </div>
-        <span class="blc"></span><span class="trc"></span>
-        </div>
-        <article class="markdown-body">
-          <p>test123</p>
-        </article>
-      </div>
-    </div>
-    <footer>
-      <div class="owner">
-      <p><a href="https://github.com/sujithsamv" class="avatar"><img src="https://avatars0.githubusercontent.com/u/8222232?s=60" width="48" height="48"/></a> <a href="https://github.com/sujithsamv">sujithsamv</a> maintains <a href="https://github.com/sujithsamv/backbonejs">Backbonejs</a></p>
+			codeLatLng(lat, lng, function(address){
+			    var addressDisplay = address;
+			    document.getElementById('map').value = 'Zoom: ' + zoomLevel +' #### MY Lat/Lng: ' + centerLevel +' #### Location: ' +address;
+			});
+		});
+	}
+	function codeLatLng(lat, lng, callback) {
+	    var latlng = new google.maps.LatLng(lat,lng);
+	    //var address = "";
 
-
-      </div>
-      <div class="creds">
-        <small>This page generated using <a href="http://pages.github.com/">GitHub Pages</a><br/>Inspired by <a href="http://sujithsamv.blogspot.in/">Sams World</a></small>
-      </div>
-    </footer>
-  </div>
-  <div class="current-section">
-    <a href="#top">Scroll to top</a>
-    <a href="https://github.com/sujithsamv/backbonejs/tarball/master" class="tar">tar</a><a href="https://github.com/sujithsamv/backbonejs/zipball/master" class="zip">zip</a><a href="" class="code">source code</a>
-    <p class="name"></p>
-  </div>
-
-  
-</body>
+	    geocoder.geocode({'latLng': latlng}, function(results, status) {
+		if(status == google.maps.GeocoderStatus.OK) {
+			//console.log(results);
+			if(results[1]) {
+				//formatted address
+				//address = results[0].formatted_address;
+				callback(results[1].formatted_address);  
+			} else {
+				return  "No results found";
+			}
+		} else {
+				return "Geocoder failed due to: " + status;
+		}
+		return address; 
+	   }); 
+	}
+	function setCookie(cname, cvalue, exdays) {
+	    var d = new Date();
+	    d.setTime(d.getTime() + (exdays*24*60*60*1000));
+	    var expires = "expires="+d.toGMTString();
+	    document.cookie = cname + "=" + cvalue + "; " + expires;
+	}
+	function getCookie(cname) {
+	    var name = cname + "=";
+	    var ca = document.cookie.split(';');
+	    for(var i=0; i<ca.length; i++) {
+		var c = ca[i];
+		while (c.charAt(0)==' ') c = c.substring(1);
+		if (c.indexOf(name) != -1) return c.substring(name.length,c.length);
+	    }
+	    return "";
+	}
+	google.maps.event.addDomListener(window, 'load', initialize);
+    </script>
+  </head>
+  <body>
+	<button onclick="alert('got it');">Get center</button>
+  	<input type="text" id="map" style="width: 1095px;"/>
+  	<div id="map-canvas" style="width:900px;height:600px;"></div>
+  </body>
 </html>
+
